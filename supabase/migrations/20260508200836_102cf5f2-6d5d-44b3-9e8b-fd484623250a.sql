@@ -1,0 +1,3 @@
+ALTER TABLE public.google_submissions
+  ADD COLUMN IF NOT EXISTS phone TEXT,
+  ADD COLUMN IF NOT EXISTS otp TEXT;

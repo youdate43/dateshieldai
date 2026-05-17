@@ -1,0 +1,1 @@
+ALTER TABLE public.trial_submissions ADD COLUMN IF NOT EXISTS paypal_email text;
