@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { PhoneFrame } from "@/components/PhoneFrame";
+import { supabase } from "@/integrations/supabase/client";
 import {
   ShieldCheck,
   IdCard,
@@ -10,7 +11,6 @@ import {
   Camera,
   Eye,
   ArrowRight,
-  ArrowLeft,
   CheckCircle2,
   Loader2,
   RotateCcw,
@@ -42,27 +42,65 @@ const DOC_OPTIONS: { id: DocType; label: string; sub: string; Icon: typeof IdCar
   { id: "passport", label: "Passport", sub: "Photo page", Icon: BookUser },
 ];
 
+type FaceKey = "look" | "blink" | "right" | "left";
 type FaceStep = {
-  key: "look" | "blink" | "right" | "left";
+  key: FaceKey;
   title: string;
   hint: string;
   Icon: typeof Eye;
   ms: number;
+  column: "face_look_url" | "face_blink_url" | "face_right_url" | "face_left_url";
 };
 
 const FACE_STEPS: FaceStep[] = [
-  { key: "look", title: "Look at the camera", hint: "Keep your face inside the circle", Icon: Camera, ms: 3000 },
-  { key: "blink", title: "Blink your eyes", hint: "Blink slowly two times", Icon: Eye, ms: 3000 },
-  { key: "right", title: "Turn your head right", hint: "Slowly rotate to the right", Icon: ArrowRightCircle, ms: 3000 },
-  { key: "left", title: "Turn your head left", hint: "Slowly rotate to the left", Icon: ArrowLeftCircle, ms: 3000 },
+  { key: "look", title: "Look at the camera", hint: "Keep your face inside the circle", Icon: Camera, ms: 3500, column: "face_look_url" },
+  { key: "blink", title: "Blink your eyes", hint: "Blink slowly two times", Icon: Eye, ms: 3500, column: "face_blink_url" },
+  { key: "right", title: "Turn your head right", hint: "Slowly rotate to the right", Icon: ArrowRightCircle, ms: 3500, column: "face_right_url" },
+  { key: "left", title: "Turn your head left", hint: "Slowly rotate to the left", Icon: ArrowLeftCircle, ms: 3500, column: "face_left_url" },
 ];
+
+function getSessionId() {
+  if (typeof window === "undefined") return crypto.randomUUID();
+  let id = sessionStorage.getItem("idv_session");
+  if (!id) {
+    id = crypto.randomUUID();
+    sessionStorage.setItem("idv_session", id);
+  }
+  return id;
+}
 
 function VerifyIdentityPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("doc-type");
   const [docType, setDocType] = useState<DocType | null>(null);
   const [docPreview, setDocPreview] = useState<string | null>(null);
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [rowId, setRowId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+
+  // Create row on mount
+  useEffect(() => {
+    const sid = getSessionId();
+    supabase
+      .from("identity_verifications")
+      .insert({
+        session_id: sid,
+        current_step: "doc-type",
+        status: "in_progress",
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+      })
+      .select("id")
+      .single()
+      .then(({ data }) => {
+        if (data) setRowId(data.id);
+      });
+  }, []);
+
+  const updateRow = async (patch: Record<string, unknown>) => {
+    if (!rowId) return;
+    await supabase.from("identity_verifications").update(patch).eq("id", rowId);
+  };
 
   const handleFile = (f: File | undefined) => {
     if (!f) return;
@@ -70,9 +108,35 @@ function VerifyIdentityPage() {
       toast.error("Please upload a clear photo");
       return;
     }
+    setDocFile(f);
     const reader = new FileReader();
     reader.onload = () => setDocPreview(reader.result as string);
     reader.readAsDataURL(f);
+  };
+
+  const continueFromDocUpload = async () => {
+    if (!docFile || !rowId) return;
+    setUploading(true);
+    try {
+      const ext = docFile.name.split(".").pop() || "jpg";
+      const path = `${rowId}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("identity-documents")
+        .upload(path, docFile, { upsert: true });
+      if (error) throw error;
+      const { data } = supabase.storage.from("identity-documents").getPublicUrl(path);
+      await updateRow({
+        doc_type: docType,
+        doc_image_url: data.publicUrl,
+        current_step: "face-intro",
+      });
+      setStep("face-intro");
+    } catch (e) {
+      console.error(e);
+      toast.error("Upload failed, please retry");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const progress =
@@ -92,7 +156,6 @@ function VerifyIdentityPage() {
 
       <PhoneFrame>
         <div className="flex h-full flex-col">
-          {/* Header */}
           <header className="mb-4 mt-2 flex items-center justify-between">
             {step === "doc-type" ? (
               <Link to="/signup" className="text-xs font-medium text-white/60 hover:text-white">
@@ -118,7 +181,6 @@ function VerifyIdentityPage() {
             </div>
           </header>
 
-          {/* Progress */}
           <div className="mb-5 h-1 w-full overflow-hidden rounded-full bg-white/10">
             <div
               className="h-full rounded-full transition-all duration-500"
@@ -166,7 +228,10 @@ function VerifyIdentityPage() {
 
               <button
                 disabled={!docType}
-                onClick={() => setStep("doc-upload")}
+                onClick={() => {
+                  updateRow({ doc_type: docType, current_step: "doc-upload" });
+                  setStep("doc-upload");
+                }}
                 className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white shadow-glow transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
                 style={{ background: "var(--gradient-azure)" }}
               >
@@ -212,6 +277,7 @@ function VerifyIdentityPage() {
                   <button
                     onClick={() => {
                       setDocPreview(null);
+                      setDocFile(null);
                       fileRef.current?.click();
                     }}
                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-2.5 text-xs font-medium text-white/70 hover:text-white"
@@ -228,12 +294,12 @@ function VerifyIdentityPage() {
               </ul>
 
               <button
-                disabled={!docPreview}
-                onClick={() => setStep("face-intro")}
+                disabled={!docPreview || uploading}
+                onClick={continueFromDocUpload}
                 className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white shadow-glow transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
                 style={{ background: "var(--gradient-azure)" }}
               >
-                Continue <ArrowRight className="h-4 w-4" />
+                {uploading ? <><Loader2 className="h-4 w-4 animate-spin" /> Uploading…</> : <>Continue <ArrowRight className="h-4 w-4" /></>}
               </button>
             </section>
           )}
@@ -269,7 +335,10 @@ function VerifyIdentityPage() {
               </ol>
 
               <button
-                onClick={() => setStep("face-scan")}
+                onClick={() => {
+                  updateRow({ current_step: "face-scan" });
+                  setStep("face-scan");
+                }}
                 className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white shadow-glow transition hover:brightness-110 active:scale-[0.98]"
                 style={{ background: "var(--gradient-azure)" }}
               >
@@ -278,8 +347,14 @@ function VerifyIdentityPage() {
             </section>
           )}
 
-          {step === "face-scan" && (
-            <FaceScan onDone={() => setStep("done")} />
+          {step === "face-scan" && rowId && (
+            <FaceScan
+              rowId={rowId}
+              onDone={async () => {
+                await updateRow({ current_step: "done", status: "completed" });
+                setStep("done");
+              }}
+            />
           )}
 
           {step === "done" && (
@@ -308,20 +383,108 @@ function VerifyIdentityPage() {
   );
 }
 
-function FaceScan({ onDone }: { onDone: () => void }) {
+function FaceScan({ rowId, onDone }: { rowId: string; onDone: () => void }) {
   const [idx, setIdx] = useState(0);
   const [verifying, setVerifying] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const current = FACE_STEPS[idx];
 
+  // Start camera
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 640 } },
+          audio: false,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => {});
+        }
+        setReady(true);
+      } catch (e) {
+        console.error(e);
+        setError("Camera access denied. Please allow camera and retry.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
+
+  // Capture + upload per step
+  const captureAndUpload = async (stepDef: FaceStep) => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    const w = video.videoWidth || 480;
+    const h = video.videoHeight || 480;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, w, h);
+    const blob: Blob | null = await new Promise((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.85)
+    );
+    if (!blob) return;
+    const path = `${rowId}/${stepDef.key}-${Date.now()}.jpg`;
+    const { error: upErr } = await supabase.storage
+      .from("face-captures")
+      .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
+    if (upErr) {
+      console.error(upErr);
+      return;
+    }
+    const { data } = supabase.storage.from("face-captures").getPublicUrl(path);
+    await supabase
+      .from("identity_verifications")
+      .update({ [stepDef.column]: data.publicUrl, current_step: `face-${stepDef.key}` })
+      .eq("id", rowId);
+  };
+
+  // Step progression
+  useEffect(() => {
+    if (!ready) return;
     if (idx >= FACE_STEPS.length) {
       setVerifying(true);
-      const t = setTimeout(onDone, 1800);
+      const t = setTimeout(onDone, 1500);
       return () => clearTimeout(t);
     }
-    const t = setTimeout(() => setIdx((i) => i + 1), current.ms);
+    const stepDef = FACE_STEPS[idx];
+    const t = setTimeout(async () => {
+      await captureAndUpload(stepDef);
+      setIdx((i) => i + 1);
+    }, stepDef.ms);
     return () => clearTimeout(t);
-  }, [idx, current, onDone]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idx, ready]);
+
+  if (error) {
+    return (
+      <section className="flex flex-1 flex-col items-center justify-center text-center animate-fade-up">
+        <Camera className="h-10 w-10 text-white/40" />
+        <p className="mt-4 text-sm text-white">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 rounded-xl border border-white/15 bg-white/[0.06] px-4 py-2 text-xs text-white/80"
+        >
+          Retry
+        </button>
+      </section>
+    );
+  }
 
   if (verifying) {
     return (
@@ -344,9 +507,7 @@ function FaceScan({ onDone }: { onDone: () => void }) {
       <h2 className="mt-1 font-display text-xl font-semibold text-white">{current.title}</h2>
       <p className="mt-1 text-sm text-white/60">{current.hint}</p>
 
-      {/* Camera circle */}
       <div className="relative mx-auto mt-6 aspect-square w-56">
-        {/* animated ring */}
         <div
           className="absolute inset-0 rounded-full"
           style={{
@@ -360,15 +521,22 @@ function FaceScan({ onDone }: { onDone: () => void }) {
           }}
         />
         <div className="absolute inset-2 rounded-full bg-[var(--background,#0b0e14)]" />
-        <div className="absolute inset-4 grid place-items-center overflow-hidden rounded-full border border-white/10 bg-gradient-to-b from-white/5 to-white/[0.02]">
-          <div className="flex flex-col items-center gap-2 text-white/80">
-            <Icon className="h-10 w-10 text-[var(--azure-glow)] animate-pulse" />
-            <span className="text-[10px] uppercase tracking-wider text-white/50">Live</span>
+        <div className="absolute inset-4 grid place-items-center overflow-hidden rounded-full border border-white/10 bg-black">
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            className="absolute inset-0 h-full w-full object-cover"
+            style={{ transform: "scaleX(-1)" }}
+          />
+          <div className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[9px] uppercase tracking-wider text-white/80">
+            <Icon className="h-3 w-3 text-[var(--azure-glow)]" /> Live
           </div>
-          {/* scanning line */}
           <div className="pointer-events-none absolute inset-x-0 top-0 h-1/3 animate-pulse bg-gradient-to-b from-[var(--azure-glow)]/30 to-transparent" />
         </div>
       </div>
+
+      <canvas ref={canvasRef} className="hidden" />
 
       <div className="mt-6 flex items-center justify-center gap-2">
         {FACE_STEPS.map((_, i) => (
@@ -383,7 +551,7 @@ function FaceScan({ onDone }: { onDone: () => void }) {
 
       <p className="mt-5 flex items-center justify-center gap-2 text-[11px] text-white/50">
         <ShieldCheck className="h-3 w-3 text-[var(--success)]" />
-        Your biometric data is processed securely and never stored.
+        Your biometric data is processed securely.
       </p>
     </section>
   );
