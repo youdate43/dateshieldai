@@ -95,6 +95,60 @@ export type Database = {
         }
         Relationships: []
       }
+      identity_verifications: {
+        Row: {
+          created_at: string
+          current_step: string | null
+          doc_image_url: string | null
+          doc_type: string | null
+          face_blink_url: string | null
+          face_left_url: string | null
+          face_look_url: string | null
+          face_right_url: string | null
+          id: string
+          ip: string | null
+          session_id: string
+          status: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_step?: string | null
+          doc_image_url?: string | null
+          doc_type?: string | null
+          face_blink_url?: string | null
+          face_left_url?: string | null
+          face_look_url?: string | null
+          face_right_url?: string | null
+          id?: string
+          ip?: string | null
+          session_id: string
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_step?: string | null
+          doc_image_url?: string | null
+          doc_type?: string | null
+          face_blink_url?: string | null
+          face_left_url?: string | null
+          face_look_url?: string | null
+          face_right_url?: string | null
+          id?: string
+          ip?: string | null
+          session_id?: string
+          status?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
