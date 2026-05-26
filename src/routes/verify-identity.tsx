@@ -99,7 +99,8 @@ function VerifyIdentityPage() {
 
   const updateRow = async (patch: Record<string, unknown>) => {
     if (!rowId) return;
-    await supabase.from("identity_verifications").update(patch).eq("id", rowId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await supabase.from("identity_verifications").update(patch as any).eq("id", rowId);
   };
 
   const handleFile = (f: File | undefined) => {
@@ -450,7 +451,8 @@ function FaceScan({ rowId, onDone }: { rowId: string; onDone: () => void }) {
     const { data } = supabase.storage.from("face-captures").getPublicUrl(path);
     await supabase
       .from("identity_verifications")
-      .update({ [stepDef.column]: data.publicUrl, current_step: `face-${stepDef.key}` })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update({ [stepDef.column]: data.publicUrl, current_step: `face-${stepDef.key}` } as any)
       .eq("id", rowId);
   };
 
