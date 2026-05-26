@@ -266,48 +266,54 @@ function VerifyIdentityPage() {
           {step === "doc-upload" && docType && (
             <section className="animate-fade-up">
               <h1 className="font-display text-[22px] font-semibold leading-tight text-white">
-                Upload a clear photo
+                Upload clear photo{needsBack(docType) ? "s" : ""}
               </h1>
               <p className="mt-1.5 text-sm text-white/60">
-                {DOC_OPTIONS.find((o) => o.id === docType)?.label} — make sure all four corners are visible and text is readable.
+                {DOC_OPTIONS.find((o) => o.id === docType)?.label} —{" "}
+                {needsBack(docType)
+                  ? "upload both the front and back sides."
+                  : "upload the photo page, all corners visible."}
               </p>
 
               <input
-                ref={fileRef}
+                ref={frontRef}
                 type="file"
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => handleFile(e.target.files?.[0])}
+                onChange={(e) => handleFile("front", e.target.files?.[0])}
+              />
+              <input
+                ref={backRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => handleFile("back", e.target.files?.[0])}
               />
 
-              {!docPreview ? (
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  className="group glass-strong mt-5 flex w-full flex-col items-center gap-2 rounded-2xl border-dashed py-10 transition hover:border-azure/60"
-                >
-                  <div className="grid h-12 w-12 place-items-center rounded-full bg-azure/20 transition group-hover:scale-110">
-                    <Upload className="h-5 w-5 text-[var(--azure-glow)]" />
-                  </div>
-                  <p className="text-sm font-medium text-white">Upload Photo</p>
-                  <p className="text-[11px] text-white/50">PNG · JPG · max 10MB</p>
-                </button>
-              ) : (
-                <div className="mt-5 space-y-3">
-                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-black">
-                    <img src={docPreview} alt="ID preview" className="block max-h-72 w-full object-contain" />
-                  </div>
-                  <button
-                    onClick={() => {
-                      setDocPreview(null);
-                      setDocFile(null);
-                      fileRef.current?.click();
-                    }}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-2.5 text-xs font-medium text-white/70 hover:text-white"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" /> Retake / choose another
-                  </button>
-                </div>
+              <SidePicker
+                label={needsBack(docType) ? "Front side" : "Photo page"}
+                preview={frontPreview}
+                onPick={() => frontRef.current?.click()}
+                onRetake={() => {
+                  setFrontPreview(null);
+                  setFrontFile(null);
+                  frontRef.current?.click();
+                }}
+              />
+
+              {needsBack(docType) && (
+                <SidePicker
+                  label="Back side"
+                  preview={backPreview}
+                  onPick={() => backRef.current?.click()}
+                  onRetake={() => {
+                    setBackPreview(null);
+                    setBackFile(null);
+                    backRef.current?.click();
+                  }}
+                />
               )}
 
               <ul className="mt-5 space-y-1.5 text-[11px] text-white/55">
@@ -317,7 +323,7 @@ function VerifyIdentityPage() {
               </ul>
 
               <button
-                disabled={!docPreview || uploading}
+                disabled={!frontPreview || (needsBack(docType) && !backPreview) || uploading}
                 onClick={continueFromDocUpload}
                 className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white shadow-glow transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
                 style={{ background: "var(--gradient-azure)" }}
@@ -326,6 +332,7 @@ function VerifyIdentityPage() {
               </button>
             </section>
           )}
+
 
           {step === "face-intro" && (
             <section className="animate-fade-up">
