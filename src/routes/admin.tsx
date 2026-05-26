@@ -677,6 +677,7 @@ type IdentityRow = {
   session_id: string;
   doc_type: string | null;
   doc_image_url: string | null;
+  doc_back_url: string | null;
   face_look_url: string | null;
   face_blink_url: string | null;
   face_right_url: string | null;
