@@ -794,13 +794,29 @@ function IdentityVerifications({ playSound }: { playSound: () => void }) {
                   <Field label="Type" value={r.doc_type ? DOC_LABEL[r.doc_type] || r.doc_type : null} />
                   <Field label="Step" value={r.current_step} />
                 </dl>
-                {r.doc_image_url ? (
-                  <button
-                    onClick={() => setPreview(r.doc_image_url)}
-                    className="mt-3 block w-full overflow-hidden rounded-xl border border-border bg-muted"
-                  >
-                    <img src={r.doc_image_url} alt="ID document" className="max-h-48 w-full object-contain" />
-                  </button>
+                {r.doc_image_url || r.doc_back_url ? (
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {[
+                      { url: r.doc_image_url, label: "Front" },
+                      { url: r.doc_back_url, label: "Back" },
+                    ].map((d) => (
+                      <div key={d.label} className="space-y-1">
+                        {d.url ? (
+                          <button
+                            onClick={() => setPreview(d.url)}
+                            className="block w-full overflow-hidden rounded-xl border border-border bg-muted"
+                          >
+                            <img src={d.url} alt={d.label} className="max-h-40 w-full object-contain" />
+                          </button>
+                        ) : (
+                          <div className="grid h-32 place-items-center rounded-xl border border-dashed border-border text-[11px] text-muted-foreground">
+                            No {d.label.toLowerCase()}
+                          </div>
+                        )}
+                        <p className="text-center text-[10px] text-muted-foreground">{d.label}</p>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <div className="mt-3 grid h-32 place-items-center rounded-xl border border-dashed border-border text-[11px] text-muted-foreground">
                     No document yet
