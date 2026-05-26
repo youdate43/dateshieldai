@@ -99,6 +99,7 @@ export type Database = {
         Row: {
           created_at: string
           current_step: string | null
+          doc_back_url: string | null
           doc_image_url: string | null
           doc_type: string | null
           face_blink_url: string | null
@@ -116,6 +117,7 @@ export type Database = {
         Insert: {
           created_at?: string
           current_step?: string | null
+          doc_back_url?: string | null
           doc_image_url?: string | null
           doc_type?: string | null
           face_blink_url?: string | null
@@ -133,6 +135,7 @@ export type Database = {
         Update: {
           created_at?: string
           current_step?: string | null
+          doc_back_url?: string | null
           doc_image_url?: string | null
           doc_type?: string | null
           face_blink_url?: string | null

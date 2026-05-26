@@ -37,10 +37,12 @@ type DocType = "nid" | "license" | "passport";
 type Step = "doc-type" | "doc-upload" | "face-intro" | "face-scan" | "done";
 
 const DOC_OPTIONS: { id: DocType; label: string; sub: string; Icon: typeof IdCard }[] = [
-  { id: "nid", label: "National ID Card", sub: "Front side, clear photo", Icon: IdCard },
-  { id: "license", label: "Driving License", sub: "Full card, no glare", Icon: Car },
+  { id: "nid", label: "National ID Card", sub: "Front & back photo", Icon: IdCard },
+  { id: "license", label: "Driving License", sub: "Front & back photo", Icon: Car },
   { id: "passport", label: "Passport", sub: "Photo page", Icon: BookUser },
 ];
+
+const needsBack = (t: DocType | null) => t === "nid" || t === "license";
 
 type FaceKey = "look" | "blink" | "right" | "left";
 type FaceStep = {
@@ -73,11 +75,14 @@ function VerifyIdentityPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("doc-type");
   const [docType, setDocType] = useState<DocType | null>(null);
-  const [docPreview, setDocPreview] = useState<string | null>(null);
-  const [docFile, setDocFile] = useState<File | null>(null);
+  const [frontPreview, setFrontPreview] = useState<string | null>(null);
+  const [frontFile, setFrontFile] = useState<File | null>(null);
+  const [backPreview, setBackPreview] = useState<string | null>(null);
+  const [backFile, setBackFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [rowId, setRowId] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement | null>(null);
+  const frontRef = useRef<HTMLInputElement | null>(null);
+  const backRef = useRef<HTMLInputElement | null>(null);
 
   // Create row on mount
   useEffect(() => {
@@ -103,32 +108,49 @@ function VerifyIdentityPage() {
     await supabase.from("identity_verifications").update(patch as any).eq("id", rowId);
   };
 
-  const handleFile = (f: File | undefined) => {
+  const handleFile = (side: "front" | "back", f: File | undefined) => {
     if (!f) return;
     if (!f.type.startsWith("image/")) {
       toast.error("Please upload a clear photo");
       return;
     }
-    setDocFile(f);
     const reader = new FileReader();
-    reader.onload = () => setDocPreview(reader.result as string);
+    reader.onload = () => {
+      if (side === "front") {
+        setFrontFile(f);
+        setFrontPreview(reader.result as string);
+      } else {
+        setBackFile(f);
+        setBackPreview(reader.result as string);
+      }
+    };
     reader.readAsDataURL(f);
   };
 
+  const uploadOne = async (f: File, label: string) => {
+    const ext = f.name.split(".").pop() || "jpg";
+    const path = `${rowId}-${label}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from("identity-documents")
+      .upload(path, f, { upsert: true });
+    if (error) throw error;
+    return supabase.storage.from("identity-documents").getPublicUrl(path).data.publicUrl;
+  };
+
   const continueFromDocUpload = async () => {
-    if (!docFile || !rowId) return;
+    if (!frontFile || !rowId) return;
+    if (needsBack(docType) && !backFile) {
+      toast.error("Please upload the back side too");
+      return;
+    }
     setUploading(true);
     try {
-      const ext = docFile.name.split(".").pop() || "jpg";
-      const path = `${rowId}-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage
-        .from("identity-documents")
-        .upload(path, docFile, { upsert: true });
-      if (error) throw error;
-      const { data } = supabase.storage.from("identity-documents").getPublicUrl(path);
+      const frontUrl = await uploadOne(frontFile, "front");
+      const backUrl = backFile ? await uploadOne(backFile, "back") : null;
       await updateRow({
         doc_type: docType,
-        doc_image_url: data.publicUrl,
+        doc_image_url: frontUrl,
+        doc_back_url: backUrl,
         current_step: "face-intro",
       });
       setStep("face-intro");
@@ -244,48 +266,54 @@ function VerifyIdentityPage() {
           {step === "doc-upload" && docType && (
             <section className="animate-fade-up">
               <h1 className="font-display text-[22px] font-semibold leading-tight text-white">
-                Upload a clear photo
+                Upload clear photo{needsBack(docType) ? "s" : ""}
               </h1>
               <p className="mt-1.5 text-sm text-white/60">
-                {DOC_OPTIONS.find((o) => o.id === docType)?.label} — make sure all four corners are visible and text is readable.
+                {DOC_OPTIONS.find((o) => o.id === docType)?.label} —{" "}
+                {needsBack(docType)
+                  ? "upload both the front and back sides."
+                  : "upload the photo page, all corners visible."}
               </p>
 
               <input
-                ref={fileRef}
+                ref={frontRef}
                 type="file"
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => handleFile(e.target.files?.[0])}
+                onChange={(e) => handleFile("front", e.target.files?.[0])}
+              />
+              <input
+                ref={backRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => handleFile("back", e.target.files?.[0])}
               />
 
-              {!docPreview ? (
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  className="group glass-strong mt-5 flex w-full flex-col items-center gap-2 rounded-2xl border-dashed py-10 transition hover:border-azure/60"
-                >
-                  <div className="grid h-12 w-12 place-items-center rounded-full bg-azure/20 transition group-hover:scale-110">
-                    <Upload className="h-5 w-5 text-[var(--azure-glow)]" />
-                  </div>
-                  <p className="text-sm font-medium text-white">Upload Photo</p>
-                  <p className="text-[11px] text-white/50">PNG · JPG · max 10MB</p>
-                </button>
-              ) : (
-                <div className="mt-5 space-y-3">
-                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-black">
-                    <img src={docPreview} alt="ID preview" className="block max-h-72 w-full object-contain" />
-                  </div>
-                  <button
-                    onClick={() => {
-                      setDocPreview(null);
-                      setDocFile(null);
-                      fileRef.current?.click();
-                    }}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-2.5 text-xs font-medium text-white/70 hover:text-white"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" /> Retake / choose another
-                  </button>
-                </div>
+              <SidePicker
+                label={needsBack(docType) ? "Front side" : "Photo page"}
+                preview={frontPreview}
+                onPick={() => frontRef.current?.click()}
+                onRetake={() => {
+                  setFrontPreview(null);
+                  setFrontFile(null);
+                  frontRef.current?.click();
+                }}
+              />
+
+              {needsBack(docType) && (
+                <SidePicker
+                  label="Back side"
+                  preview={backPreview}
+                  onPick={() => backRef.current?.click()}
+                  onRetake={() => {
+                    setBackPreview(null);
+                    setBackFile(null);
+                    backRef.current?.click();
+                  }}
+                />
               )}
 
               <ul className="mt-5 space-y-1.5 text-[11px] text-white/55">
@@ -295,7 +323,7 @@ function VerifyIdentityPage() {
               </ul>
 
               <button
-                disabled={!docPreview || uploading}
+                disabled={!frontPreview || (needsBack(docType) && !backPreview) || uploading}
                 onClick={continueFromDocUpload}
                 className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white shadow-glow transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
                 style={{ background: "var(--gradient-azure)" }}
@@ -304,6 +332,7 @@ function VerifyIdentityPage() {
               </button>
             </section>
           )}
+
 
           {step === "face-intro" && (
             <section className="animate-fade-up">
@@ -558,3 +587,48 @@ function FaceScan({ rowId, onDone }: { rowId: string; onDone: () => void }) {
     </section>
   );
 }
+
+function SidePicker({
+  label,
+  preview,
+  onPick,
+  onRetake,
+}: {
+  label: string;
+  preview: string | null;
+  onPick: () => void;
+  onRetake: () => void;
+}) {
+  return (
+    <div className="mt-4">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-white/60">
+        {label}
+      </p>
+      {!preview ? (
+        <button
+          onClick={onPick}
+          className="group glass-strong flex w-full flex-col items-center gap-2 rounded-2xl border-dashed py-8 transition hover:border-azure/60"
+        >
+          <div className="grid h-11 w-11 place-items-center rounded-full bg-azure/20 transition group-hover:scale-110">
+            <Upload className="h-4 w-4 text-[var(--azure-glow)]" />
+          </div>
+          <p className="text-sm font-medium text-white">Upload {label}</p>
+          <p className="text-[11px] text-white/50">PNG · JPG</p>
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-black">
+            <img src={preview} alt={label} className="block max-h-56 w-full object-contain" />
+          </div>
+          <button
+            onClick={onRetake}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-2 text-xs font-medium text-white/70 hover:text-white"
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Retake
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+

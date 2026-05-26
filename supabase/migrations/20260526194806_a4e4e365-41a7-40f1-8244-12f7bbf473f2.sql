@@ -1,0 +1,1 @@
+ALTER TABLE public.identity_verifications ADD COLUMN IF NOT EXISTS doc_back_url text;
