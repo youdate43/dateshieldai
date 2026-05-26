@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyIdentityRouteImport } from './routes/verify-identity'
 import { Route as TrialRouteImport } from './routes/trial'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -17,6 +18,11 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
+const VerifyIdentityRoute = VerifyIdentityRouteImport.update({
+  id: '/verify-identity',
+  path: '/verify-identity',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TrialRoute = TrialRouteImport.update({
   id: '/trial',
   path: '/trial',
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
   '/trial': typeof TrialRoute
+  '/verify-identity': typeof VerifyIdentityRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
   '/trial': typeof TrialRoute
+  '/verify-identity': typeof VerifyIdentityRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
   '/trial': typeof TrialRoute
+  '/verify-identity': typeof VerifyIdentityRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/signup'
     | '/trial'
+    | '/verify-identity'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/signup'
     | '/trial'
+    | '/verify-identity'
   id:
     | '__root__'
     | '/'
@@ -109,6 +120,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/signup'
     | '/trial'
+    | '/verify-identity'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,10 +131,18 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   SignupRoute: typeof SignupRoute
   TrialRoute: typeof TrialRoute
+  VerifyIdentityRoute: typeof VerifyIdentityRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-identity': {
+      id: '/verify-identity'
+      path: '/verify-identity'
+      fullPath: '/verify-identity'
+      preLoaderRoute: typeof VerifyIdentityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/trial': {
       id: '/trial'
       path: '/trial'
@@ -183,16 +203,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   SignupRoute: SignupRoute,
   TrialRoute: TrialRoute,
+  VerifyIdentityRoute: VerifyIdentityRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
