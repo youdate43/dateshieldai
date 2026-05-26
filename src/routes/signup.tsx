@@ -60,8 +60,8 @@ function SignUpPage() {
       toast.error(error.message);
       return;
     }
-    toast.success("Account created!");
-    navigate({ to: "/trial" });
+    toast.success("Account created! Verify your identity to continue.");
+    navigate({ to: "/verify-identity" });
   };
 
   return (
