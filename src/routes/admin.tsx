@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, BellOff, CreditCard, MapPin, Clock, Building2, Monitor, Globe, CheckCircle2, Download, Trash2, Image as ImageIcon, Plus, Search, Mail, ShieldCheck } from "lucide-react";
+import { Bell, BellOff, CreditCard, MapPin, Clock, Building2, Monitor, Globe, CheckCircle2, Download, Trash2, Image as ImageIcon, Plus, Search, Mail, ShieldCheck, Camera } from "lucide-react";
 import { US_BANKS } from "@/lib/us-banks";
 import { fetchBankLogoOverrides } from "@/lib/bank-logos";
 import { bankLogo as defaultBankLogo } from "@/lib/us-banks";
