@@ -53,7 +53,7 @@ function SignUpPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/trial` },
+      options: { emailRedirectTo: `${window.location.origin}/verify-identity` },
     });
     setLoading(false);
     if (error) {
