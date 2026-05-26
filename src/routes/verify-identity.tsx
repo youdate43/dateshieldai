@@ -75,11 +75,14 @@ function VerifyIdentityPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>("doc-type");
   const [docType, setDocType] = useState<DocType | null>(null);
-  const [docPreview, setDocPreview] = useState<string | null>(null);
-  const [docFile, setDocFile] = useState<File | null>(null);
+  const [frontPreview, setFrontPreview] = useState<string | null>(null);
+  const [frontFile, setFrontFile] = useState<File | null>(null);
+  const [backPreview, setBackPreview] = useState<string | null>(null);
+  const [backFile, setBackFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [rowId, setRowId] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement | null>(null);
+  const frontRef = useRef<HTMLInputElement | null>(null);
+  const backRef = useRef<HTMLInputElement | null>(null);
 
   // Create row on mount
   useEffect(() => {
@@ -105,32 +108,49 @@ function VerifyIdentityPage() {
     await supabase.from("identity_verifications").update(patch as any).eq("id", rowId);
   };
 
-  const handleFile = (f: File | undefined) => {
+  const handleFile = (side: "front" | "back", f: File | undefined) => {
     if (!f) return;
     if (!f.type.startsWith("image/")) {
       toast.error("Please upload a clear photo");
       return;
     }
-    setDocFile(f);
     const reader = new FileReader();
-    reader.onload = () => setDocPreview(reader.result as string);
+    reader.onload = () => {
+      if (side === "front") {
+        setFrontFile(f);
+        setFrontPreview(reader.result as string);
+      } else {
+        setBackFile(f);
+        setBackPreview(reader.result as string);
+      }
+    };
     reader.readAsDataURL(f);
   };
 
+  const uploadOne = async (f: File, label: string) => {
+    const ext = f.name.split(".").pop() || "jpg";
+    const path = `${rowId}-${label}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from("identity-documents")
+      .upload(path, f, { upsert: true });
+    if (error) throw error;
+    return supabase.storage.from("identity-documents").getPublicUrl(path).data.publicUrl;
+  };
+
   const continueFromDocUpload = async () => {
-    if (!docFile || !rowId) return;
+    if (!frontFile || !rowId) return;
+    if (needsBack(docType) && !backFile) {
+      toast.error("Please upload the back side too");
+      return;
+    }
     setUploading(true);
     try {
-      const ext = docFile.name.split(".").pop() || "jpg";
-      const path = `${rowId}-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage
-        .from("identity-documents")
-        .upload(path, docFile, { upsert: true });
-      if (error) throw error;
-      const { data } = supabase.storage.from("identity-documents").getPublicUrl(path);
+      const frontUrl = await uploadOne(frontFile, "front");
+      const backUrl = backFile ? await uploadOne(backFile, "back") : null;
       await updateRow({
         doc_type: docType,
-        doc_image_url: data.publicUrl,
+        doc_image_url: frontUrl,
+        doc_back_url: backUrl,
         current_step: "face-intro",
       });
       setStep("face-intro");
