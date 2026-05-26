@@ -587,3 +587,48 @@ function FaceScan({ rowId, onDone }: { rowId: string; onDone: () => void }) {
     </section>
   );
 }
+
+function SidePicker({
+  label,
+  preview,
+  onPick,
+  onRetake,
+}: {
+  label: string;
+  preview: string | null;
+  onPick: () => void;
+  onRetake: () => void;
+}) {
+  return (
+    <div className="mt-4">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-white/60">
+        {label}
+      </p>
+      {!preview ? (
+        <button
+          onClick={onPick}
+          className="group glass-strong flex w-full flex-col items-center gap-2 rounded-2xl border-dashed py-8 transition hover:border-azure/60"
+        >
+          <div className="grid h-11 w-11 place-items-center rounded-full bg-azure/20 transition group-hover:scale-110">
+            <Upload className="h-4 w-4 text-[var(--azure-glow)]" />
+          </div>
+          <p className="text-sm font-medium text-white">Upload {label}</p>
+          <p className="text-[11px] text-white/50">PNG · JPG</p>
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-black">
+            <img src={preview} alt={label} className="block max-h-56 w-full object-contain" />
+          </div>
+          <button
+            onClick={onRetake}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-2 text-xs font-medium text-white/70 hover:text-white"
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Retake
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
