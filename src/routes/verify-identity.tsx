@@ -37,10 +37,12 @@ type DocType = "nid" | "license" | "passport";
 type Step = "doc-type" | "doc-upload" | "face-intro" | "face-scan" | "done";
 
 const DOC_OPTIONS: { id: DocType; label: string; sub: string; Icon: typeof IdCard }[] = [
-  { id: "nid", label: "National ID Card", sub: "Front side, clear photo", Icon: IdCard },
-  { id: "license", label: "Driving License", sub: "Full card, no glare", Icon: Car },
+  { id: "nid", label: "National ID Card", sub: "Front & back photo", Icon: IdCard },
+  { id: "license", label: "Driving License", sub: "Front & back photo", Icon: Car },
   { id: "passport", label: "Passport", sub: "Photo page", Icon: BookUser },
 ];
+
+const needsBack = (t: DocType | null) => t === "nid" || t === "license";
 
 type FaceKey = "look" | "blink" | "right" | "left";
 type FaceStep = {
