@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, BellOff, CreditCard, MapPin, Clock, Building2, Monitor, Globe, CheckCircle2, Download, Trash2, Image as ImageIcon, Plus, Search, Mail } from "lucide-react";
+import { Bell, BellOff, CreditCard, MapPin, Clock, Building2, Monitor, Globe, CheckCircle2, Download, Trash2, Image as ImageIcon, Plus, Search, Mail, ShieldCheck } from "lucide-react";
 import { US_BANKS } from "@/lib/us-banks";
 import { fetchBankLogoOverrides } from "@/lib/bank-logos";
 import { bankLogo as defaultBankLogo } from "@/lib/us-banks";
@@ -52,7 +52,7 @@ type Submission = {
 function AdminPage() {
   const [rows, setRows] = useState<Submission[]>([]);
   const [soundOn, setSoundOn] = useState(true);
-  const [tab, setTab] = useState<"submissions" | "google" | "logos">("submissions");
+  const [tab, setTab] = useState<"submissions" | "google" | "identity" | "logos">("submissions");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const soundOnRef = useRef(true);
   soundOnRef.current = soundOn;
@@ -190,6 +190,12 @@ function AdminPage() {
             <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> Google</span>
           </button>
           <button
+            onClick={() => setTab("identity")}
+            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${tab === "identity" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Identity</span>
+          </button>
+          <button
             onClick={() => setTab("logos")}
             className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${tab === "logos" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
           >
@@ -199,6 +205,8 @@ function AdminPage() {
 
         {tab === "logos" ? (
           <BankLogoManager />
+        ) : tab === "identity" ? (
+          <IdentityVerifications playSound={playSound} />
         ) : tab === "google" ? (
           <GoogleSubmissions playSound={playSound} />
         ) : (
