@@ -298,11 +298,11 @@ function VerifyIdentityPage() {
               <SidePicker
                 label={needsBack(docType) ? "Front side" : "Photo page"}
                 preview={frontPreview}
-                onPick={() => frontRef.current?.click()}
+                onCamera={() => setCameraSide("front")}
+                onUpload={() => frontRef.current?.click()}
                 onRetake={() => {
                   setFrontPreview(null);
                   setFrontFile(null);
-                  frontRef.current?.click();
                 }}
               />
 
@@ -310,11 +310,11 @@ function VerifyIdentityPage() {
                 <SidePicker
                   label="Back side"
                   preview={backPreview}
-                  onPick={() => backRef.current?.click()}
+                  onCamera={() => setCameraSide("back")}
+                  onUpload={() => backRef.current?.click()}
                   onRetake={() => {
                     setBackPreview(null);
                     setBackFile(null);
-                    backRef.current?.click();
                   }}
                 />
               )}
