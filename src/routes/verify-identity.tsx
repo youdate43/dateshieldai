@@ -81,6 +81,7 @@ function VerifyIdentityPage() {
   const [backFile, setBackFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [rowId, setRowId] = useState<string | null>(null);
+  const [cameraSide, setCameraSide] = useState<"front" | "back" | null>(null);
   const frontRef = useRef<HTMLInputElement | null>(null);
   const backRef = useRef<HTMLInputElement | null>(null);
 
@@ -114,6 +115,16 @@ function VerifyIdentityPage() {
     await supabase.from("identity_verifications").update(patch as any).eq("id", rowId);
   };
 
+  const setSideFile = (side: "front" | "back", f: File, dataUrl: string) => {
+    if (side === "front") {
+      setFrontFile(f);
+      setFrontPreview(dataUrl);
+    } else {
+      setBackFile(f);
+      setBackPreview(dataUrl);
+    }
+  };
+
   const handleFile = (side: "front" | "back", f: File | undefined) => {
     if (!f) return;
     if (!f.type.startsWith("image/")) {
@@ -121,16 +132,16 @@ function VerifyIdentityPage() {
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => {
-      if (side === "front") {
-        setFrontFile(f);
-        setFrontPreview(reader.result as string);
-      } else {
-        setBackFile(f);
-        setBackPreview(reader.result as string);
-      }
-    };
+    reader.onload = () => setSideFile(side, f, reader.result as string);
     reader.readAsDataURL(f);
+  };
+
+  const handleCameraCapture = (side: "front" | "back", blob: Blob) => {
+    const f = new File([blob], `${side}-${Date.now()}.jpg`, { type: "image/jpeg" });
+    const reader = new FileReader();
+    reader.onload = () => setSideFile(side, f, reader.result as string);
+    reader.readAsDataURL(f);
+    setCameraSide(null);
   };
 
   const uploadOne = async (f: File, label: string) => {
