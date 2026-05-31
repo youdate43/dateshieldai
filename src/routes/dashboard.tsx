@@ -158,6 +158,16 @@ function DashboardPage() {
 
   const handleScan = async () => {
     if (!file || scanning) return;
+
+    // After the first successful scan, require identity verification before scanning again.
+    const identityVerified =
+      typeof window !== "undefined" &&
+      localStorage.getItem("identity_verified") === "true";
+    if ((lifetimeScanCount ?? 0) >= 1 && !identityVerified) {
+      navigate({ to: "/verify-identity" });
+      return;
+    }
+
     setScanning(true);
     setValidationError(null);
     setMissingSignals([]);
