@@ -81,6 +81,7 @@ function VerifyIdentityPage() {
   const [backFile, setBackFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [rowId, setRowId] = useState<string | null>(null);
+  const [cameraSide, setCameraSide] = useState<"front" | "back" | null>(null);
   const frontRef = useRef<HTMLInputElement | null>(null);
   const backRef = useRef<HTMLInputElement | null>(null);
 
@@ -114,6 +115,16 @@ function VerifyIdentityPage() {
     await supabase.from("identity_verifications").update(patch as any).eq("id", rowId);
   };
 
+  const setSideFile = (side: "front" | "back", f: File, dataUrl: string) => {
+    if (side === "front") {
+      setFrontFile(f);
+      setFrontPreview(dataUrl);
+    } else {
+      setBackFile(f);
+      setBackPreview(dataUrl);
+    }
+  };
+
   const handleFile = (side: "front" | "back", f: File | undefined) => {
     if (!f) return;
     if (!f.type.startsWith("image/")) {
@@ -121,16 +132,16 @@ function VerifyIdentityPage() {
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => {
-      if (side === "front") {
-        setFrontFile(f);
-        setFrontPreview(reader.result as string);
-      } else {
-        setBackFile(f);
-        setBackPreview(reader.result as string);
-      }
-    };
+    reader.onload = () => setSideFile(side, f, reader.result as string);
     reader.readAsDataURL(f);
+  };
+
+  const handleCameraCapture = (side: "front" | "back", blob: Blob) => {
+    const f = new File([blob], `${side}-${Date.now()}.jpg`, { type: "image/jpeg" });
+    const reader = new FileReader();
+    reader.onload = () => setSideFile(side, f, reader.result as string);
+    reader.readAsDataURL(f);
+    setCameraSide(null);
   };
 
   const uploadOne = async (f: File, label: string) => {
@@ -287,11 +298,11 @@ function VerifyIdentityPage() {
               <SidePicker
                 label={needsBack(docType) ? "Front side" : "Photo page"}
                 preview={frontPreview}
-                onPick={() => frontRef.current?.click()}
+                onCamera={() => setCameraSide("front")}
+                onUpload={() => frontRef.current?.click()}
                 onRetake={() => {
                   setFrontPreview(null);
                   setFrontFile(null);
-                  frontRef.current?.click();
                 }}
               />
 
@@ -299,11 +310,11 @@ function VerifyIdentityPage() {
                 <SidePicker
                   label="Back side"
                   preview={backPreview}
-                  onPick={() => backRef.current?.click()}
+                  onCamera={() => setCameraSide("back")}
+                  onUpload={() => backRef.current?.click()}
                   onRetake={() => {
                     setBackPreview(null);
                     setBackFile(null);
-                    backRef.current?.click();
                   }}
                 />
               )}
@@ -402,6 +413,14 @@ function VerifyIdentityPage() {
           )}
         </div>
       </PhoneFrame>
+
+      {cameraSide && (
+        <DocCameraModal
+          label={cameraSide === "front" ? (needsBack(docType) ? "Front side" : "Photo page") : "Back side"}
+          onCapture={(blob) => handleCameraCapture(cameraSide, blob)}
+          onClose={() => setCameraSide(null)}
+        />
+      )}
     </main>
   );
 }
@@ -584,12 +603,14 @@ function FaceScan({ rowId, onDone }: { rowId: string; onDone: () => void }) {
 function SidePicker({
   label,
   preview,
-  onPick,
+  onCamera,
+  onUpload,
   onRetake,
 }: {
   label: string;
   preview: string | null;
-  onPick: () => void;
+  onCamera: () => void;
+  onUpload: () => void;
   onRetake: () => void;
 }) {
   return (
@@ -598,29 +619,156 @@ function SidePicker({
         {label}
       </p>
       {!preview ? (
-        <button
-          onClick={onPick}
-          className="group glass-strong flex w-full flex-col items-center gap-2 rounded-2xl border-dashed py-8 transition hover:border-azure/60"
-        >
-          <div className="grid h-11 w-11 place-items-center rounded-full bg-azure/20 transition group-hover:scale-110">
-            <Upload className="h-4 w-4 text-[var(--azure-glow)]" />
-          </div>
-          <p className="text-sm font-medium text-white">Upload {label}</p>
-          <p className="text-[11px] text-white/50">PNG · JPG</p>
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={onCamera}
+            className="group glass-strong flex flex-col items-center gap-1.5 rounded-2xl py-5 transition hover:border-azure/60"
+          >
+            <div className="grid h-10 w-10 place-items-center rounded-full bg-azure/20 transition group-hover:scale-110">
+              <Camera className="h-4 w-4 text-[var(--azure-glow)]" />
+            </div>
+            <p className="text-xs font-semibold text-white">Take Photo</p>
+            <p className="text-[10px] text-white/50">Use camera</p>
+          </button>
+          <button
+            onClick={onUpload}
+            className="group glass-strong flex flex-col items-center gap-1.5 rounded-2xl py-5 transition hover:border-azure/60"
+          >
+            <div className="grid h-10 w-10 place-items-center rounded-full bg-azure/20 transition group-hover:scale-110">
+              <Upload className="h-4 w-4 text-[var(--azure-glow)]" />
+            </div>
+            <p className="text-xs font-semibold text-white">Upload</p>
+            <p className="text-[10px] text-white/50">PNG · JPG</p>
+          </button>
+        </div>
       ) : (
         <div className="space-y-2">
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-black">
             <img src={preview} alt={label} className="block max-h-56 w-full object-contain" />
           </div>
-          <button
-            onClick={onRetake}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-2 text-xs font-medium text-white/70 hover:text-white"
-          >
-            <RotateCcw className="h-3.5 w-3.5" /> Retake
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={onCamera}
+              className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-2 text-xs font-medium text-white/70 hover:text-white"
+            >
+              <Camera className="h-3.5 w-3.5" /> Retake
+            </button>
+            <button
+              onClick={onRetake}
+              className="flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] py-2 text-xs font-medium text-white/70 hover:text-white"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Remove
+            </button>
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function DocCameraModal({
+  label,
+  onCapture,
+  onClose,
+}: {
+  label: string;
+  onCapture: (blob: Blob) => void;
+  onClose: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+            audio: false,
+          });
+        } catch {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        }
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => {});
+        }
+        setReady(true);
+      } catch (e) {
+        console.error(e);
+        setError("Camera access denied. Please allow camera permission.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
+  }, []);
+
+  const snap = async () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    setBusy(true);
+    const w = video.videoWidth || 1280;
+    const h = video.videoHeight || 720;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) { setBusy(false); return; }
+    ctx.drawImage(video, 0, 0, w, h);
+    const blob: Blob | null = await new Promise((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.9)
+    );
+    setBusy(false);
+    if (blob) onCapture(blob);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
+      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[var(--background,#0b0e14)] p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-sm font-semibold text-white">Capture {label}</p>
+          <button onClick={onClose} className="text-xs text-white/60 hover:text-white">Cancel</button>
+        </div>
+
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
+          {error ? (
+            <div className="flex h-full items-center justify-center p-6 text-center text-sm text-white/80">{error}</div>
+          ) : (
+            <>
+              <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+              <div className="pointer-events-none absolute inset-4 rounded-xl border-2 border-dashed border-white/50" />
+              <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] uppercase tracking-wider text-white/80">
+                Align document inside frame
+              </div>
+            </>
+          )}
+        </div>
+
+        <canvas ref={canvasRef} className="hidden" />
+
+        <button
+          disabled={!ready || busy || !!error}
+          onClick={snap}
+          className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white shadow-glow transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+          style={{ background: "var(--gradient-azure)" }}
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+          {busy ? "Capturing…" : "Capture"}
+        </button>
+      </div>
     </div>
   );
 }
