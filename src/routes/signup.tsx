@@ -53,15 +53,15 @@ function SignUpPage() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/verify-identity` },
+      options: { emailRedirectTo: `${window.location.origin}/trial` },
     });
     setLoading(false);
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success("Account created! Verify your identity to continue.");
-    navigate({ to: "/verify-identity" });
+    toast.success("Account created! Start your free trial.");
+    navigate({ to: "/trial" });
   };
 
   return (

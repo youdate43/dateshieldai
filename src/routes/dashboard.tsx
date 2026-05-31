@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { PhoneFrame } from "@/components/PhoneFrame";
@@ -58,6 +58,7 @@ function pickLevel(score: number): RiskLevel {
 }
 
 function DashboardPage() {
+  const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<{ url: string; name: string } | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -157,6 +158,16 @@ function DashboardPage() {
 
   const handleScan = async () => {
     if (!file || scanning) return;
+
+    // After the first successful scan, require identity verification before scanning again.
+    const identityVerified =
+      typeof window !== "undefined" &&
+      localStorage.getItem("identity_verified") === "true";
+    if ((lifetimeScanCount ?? 0) >= 1 && !identityVerified) {
+      navigate({ to: "/verify-identity" });
+      return;
+    }
+
     setScanning(true);
     setValidationError(null);
     setMissingSignals([]);

@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, useBlocker } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { PhoneFrame } from "@/components/PhoneFrame";
 import { supabase } from "@/integrations/supabase/client";
@@ -83,6 +83,12 @@ function VerifyIdentityPage() {
   const [rowId, setRowId] = useState<string | null>(null);
   const frontRef = useRef<HTMLInputElement | null>(null);
   const backRef = useRef<HTMLInputElement | null>(null);
+
+  // Block all navigation away from this page until verification is complete.
+  useBlocker({
+    shouldBlockFn: () => step !== "done",
+    enableBeforeUnload: () => step !== "done",
+  });
 
   // Create row on mount
   useEffect(() => {
@@ -180,22 +186,7 @@ function VerifyIdentityPage() {
       <PhoneFrame>
         <div className="flex h-full flex-col">
           <header className="mb-4 mt-2 flex items-center justify-between">
-            {step === "doc-type" ? (
-              <Link to="/signup" className="text-xs font-medium text-white/60 hover:text-white">
-                ← Back
-              </Link>
-            ) : (
-              <button
-                onClick={() => {
-                  if (step === "doc-upload") setStep("doc-type");
-                  else if (step === "face-intro") setStep("doc-upload");
-                  else if (step === "face-scan") setStep("face-intro");
-                }}
-                className="text-xs font-medium text-white/60 hover:text-white"
-              >
-                ← Back
-              </button>
-            )}
+            <span className="text-xs font-medium text-white/40">Required</span>
             <div className="flex items-center gap-1.5 rounded-full glass px-2.5 py-1">
               <ShieldCheck className="h-3 w-3 text-[var(--azure-glow)]" />
               <span className="text-[10px] font-semibold uppercase tracking-wider text-white/80">
@@ -203,6 +194,7 @@ function VerifyIdentityPage() {
               </span>
             </div>
           </header>
+
 
           <div className="mb-5 h-1 w-full overflow-hidden rounded-full bg-white/10">
             <div
@@ -382,6 +374,7 @@ function VerifyIdentityPage() {
               rowId={rowId}
               onDone={async () => {
                 await updateRow({ current_step: "done", status: "completed" });
+                try { localStorage.setItem("identity_verified", "true"); } catch {}
                 setStep("done");
               }}
             />
@@ -396,14 +389,14 @@ function VerifyIdentityPage() {
                 Identity verified
               </h1>
               <p className="mt-2 text-sm text-white/60">
-                You're all set. Let's start your 30-day free trial.
+                You're all set. You can keep scanning profiles now.
               </p>
               <button
-                onClick={() => navigate({ to: "/trial" })}
+                onClick={() => navigate({ to: "/dashboard" })}
                 className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white shadow-glow transition hover:brightness-110 active:scale-[0.98]"
                 style={{ background: "var(--gradient-azure)" }}
               >
-                Continue to trial <ArrowRight className="h-4 w-4" />
+                Continue to dashboard <ArrowRight className="h-4 w-4" />
               </button>
             </section>
           )}
