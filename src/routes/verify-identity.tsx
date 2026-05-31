@@ -84,6 +84,12 @@ function VerifyIdentityPage() {
   const frontRef = useRef<HTMLInputElement | null>(null);
   const backRef = useRef<HTMLInputElement | null>(null);
 
+  // Block all navigation away from this page until verification is complete.
+  useBlocker({
+    shouldBlockFn: () => step !== "done",
+    enableBeforeUnload: () => step !== "done",
+  });
+
   // Create row on mount
   useEffect(() => {
     const sid = getSessionId();
