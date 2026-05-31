@@ -58,6 +58,7 @@ function pickLevel(score: number): RiskLevel {
 }
 
 function DashboardPage() {
+  const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<{ url: string; name: string } | null>(null);
   const [scanning, setScanning] = useState(false);
