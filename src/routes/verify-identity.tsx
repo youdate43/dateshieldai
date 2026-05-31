@@ -413,6 +413,14 @@ function VerifyIdentityPage() {
           )}
         </div>
       </PhoneFrame>
+
+      {cameraSide && (
+        <DocCameraModal
+          label={cameraSide === "front" ? (needsBack(docType) ? "Front side" : "Photo page") : "Back side"}
+          onCapture={(blob) => handleCameraCapture(cameraSide, blob)}
+          onClose={() => setCameraSide(null)}
+        />
+      )}
     </main>
   );
 }
