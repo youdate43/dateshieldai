@@ -374,6 +374,7 @@ function VerifyIdentityPage() {
               rowId={rowId}
               onDone={async () => {
                 await updateRow({ current_step: "done", status: "completed" });
+                try { localStorage.setItem("identity_verified", "true"); } catch {}
                 setStep("done");
               }}
             />
@@ -388,14 +389,14 @@ function VerifyIdentityPage() {
                 Identity verified
               </h1>
               <p className="mt-2 text-sm text-white/60">
-                You're all set. Let's start your 30-day free trial.
+                You're all set. You can keep scanning profiles now.
               </p>
               <button
-                onClick={() => navigate({ to: "/trial" })}
+                onClick={() => navigate({ to: "/dashboard" })}
                 className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white shadow-glow transition hover:brightness-110 active:scale-[0.98]"
                 style={{ background: "var(--gradient-azure)" }}
               >
-                Continue to trial <ArrowRight className="h-4 w-4" />
+                Continue to dashboard <ArrowRight className="h-4 w-4" />
               </button>
             </section>
           )}
