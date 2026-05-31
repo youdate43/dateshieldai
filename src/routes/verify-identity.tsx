@@ -186,7 +186,6 @@ function VerifyIdentityPage() {
       <PhoneFrame>
         <div className="flex h-full flex-col">
           <header className="mb-4 mt-2 flex items-center justify-between">
-          <header className="mb-4 mt-2 flex items-center justify-between">
             <span className="text-xs font-medium text-white/40">Required</span>
             <div className="flex items-center gap-1.5 rounded-full glass px-2.5 py-1">
               <ShieldCheck className="h-3 w-3 text-[var(--azure-glow)]" />
