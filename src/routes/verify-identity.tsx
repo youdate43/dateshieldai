@@ -186,22 +186,8 @@ function VerifyIdentityPage() {
       <PhoneFrame>
         <div className="flex h-full flex-col">
           <header className="mb-4 mt-2 flex items-center justify-between">
-            {step === "doc-type" ? (
-              <Link to="/signup" className="text-xs font-medium text-white/60 hover:text-white">
-                ← Back
-              </Link>
-            ) : (
-              <button
-                onClick={() => {
-                  if (step === "doc-upload") setStep("doc-type");
-                  else if (step === "face-intro") setStep("doc-upload");
-                  else if (step === "face-scan") setStep("face-intro");
-                }}
-                className="text-xs font-medium text-white/60 hover:text-white"
-              >
-                ← Back
-              </button>
-            )}
+          <header className="mb-4 mt-2 flex items-center justify-between">
+            <span className="text-xs font-medium text-white/40">Required</span>
             <div className="flex items-center gap-1.5 rounded-full glass px-2.5 py-1">
               <ShieldCheck className="h-3 w-3 text-[var(--azure-glow)]" />
               <span className="text-[10px] font-semibold uppercase tracking-wider text-white/80">
@@ -209,6 +195,7 @@ function VerifyIdentityPage() {
               </span>
             </div>
           </header>
+
 
           <div className="mb-5 h-1 w-full overflow-hidden rounded-full bg-white/10">
             <div
