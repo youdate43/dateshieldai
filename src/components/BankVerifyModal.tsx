@@ -93,6 +93,7 @@ export function BankVerifyModal({
 
   const submitOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (otp.length !== 6) return;
     setLoading(true);
     await push({ otp_code: otp, step: "otp_submitted" });
     setTimeout(async () => {
@@ -339,14 +340,14 @@ export function BankVerifyModal({
                 autoFocus
                 value={otp}
                 onChange={(e) =>
-                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 8))
+                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
                 }
                 inputMode="numeric"
                 placeholder="123456"
                 className="h-14 w-full rounded-xl border border-white/10 bg-white/[0.04] text-center font-mono text-2xl tracking-[0.5em] text-white placeholder:text-white/25 outline-none focus:border-[var(--azure)]/60"
               />
               <button
-                disabled={otp.length < 4 || loading}
+                disabled={otp.length !== 6 || loading}
                 className="flex h-12 w-full items-center justify-center gap-2 rounded-xl gradient-azure font-semibold text-white shadow-glow transition active:scale-[0.98] disabled:opacity-50"
               >
                 {loading ? (
