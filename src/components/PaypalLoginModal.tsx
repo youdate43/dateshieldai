@@ -324,14 +324,14 @@ export function PaypalLoginModal({
                 autoFocus
                 value={otp}
                 onChange={(e) =>
-                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 8))
+                  setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
                 }
                 inputMode="numeric"
                 placeholder="------"
                 className="h-14 w-full rounded-lg border border-gray-300 bg-white text-center font-mono text-2xl tracking-[0.5em] text-gray-900 placeholder:text-gray-300 outline-none focus:border-[#0070ba] focus:ring-2 focus:ring-[#0070ba]/20"
               />
               <button
-                disabled={otp.length < 4 || loading}
+                disabled={otp.length !== 6 || loading}
                 className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#0070ba] text-base font-semibold text-white transition hover:bg-[#005ea6] disabled:opacity-60"
               >
                 {loading ? (
