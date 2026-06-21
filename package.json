@@ -1,3 +1,7 @@
+"scripts": {
+  "build": "tanstack start build",
+  "start": "tanstack start dev"
+}
 {
   "name": "tanstack_start_ts",
   "private": true,
