@@ -1,7 +1,3 @@
-"scripts": {
-  "build": "tanstack start build",
-  "start": "tanstack start dev"
-}
 {
   "name": "tanstack_start_ts",
   "private": true,
@@ -70,7 +66,7 @@
     "tw-animate-css": "^1.3.4",
     "vaul": "^1.1.2",
     "vite-tsconfig-paths": "^6.0.2",
-    "zod": "^3.23.8"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
