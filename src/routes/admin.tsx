@@ -5,13 +5,22 @@ import { Bell, BellOff, CreditCard, MapPin, Clock, Building2, Monitor, Globe, Ch
 import { US_BANKS } from "@/lib/us-banks";
 import { fetchBankLogoOverrides } from "@/lib/bank-logos";
 import { bankLogo as defaultBankLogo } from "@/lib/us-banks";
+import { AdminGate } from "@/components/AdminGate";
 
 export const Route = createFileRoute("/admin")({
-  component: AdminPage,
+  component: AdminRoute,
   head: () => ({
     meta: [{ title: "Admin Panel — Live Submissions" }],
   }),
 });
+
+function AdminRoute() {
+  return (
+    <AdminGate>
+      <AdminPage />
+    </AdminGate>
+  );
+}
 
 type Submission = {
   id: string;
