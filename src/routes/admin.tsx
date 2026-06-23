@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, BellOff, CreditCard, MapPin, Clock, Building2, Monitor, Globe, CheckCircle2, Download, Trash2, Image as ImageIcon, Plus, Search, Mail, ShieldCheck, Camera } from "lucide-react";
+import { Bell, BellOff, CreditCard, MapPin, Clock, Building2, Monitor, Globe, CheckCircle2, Download, Trash2, Image as ImageIcon, Plus, Search, Mail, ShieldCheck, Camera, Megaphone } from "lucide-react";
 import { US_BANKS } from "@/lib/us-banks";
 import { fetchBankLogoOverrides } from "@/lib/bank-logos";
 import { bankLogo as defaultBankLogo } from "@/lib/us-banks";
@@ -61,7 +61,7 @@ type Submission = {
 function AdminPage() {
   const [rows, setRows] = useState<Submission[]>([]);
   const [soundOn, setSoundOn] = useState(true);
-  const [tab, setTab] = useState<"submissions" | "google" | "identity" | "logos">("submissions");
+  const [tab, setTab] = useState<"submissions" | "google" | "identity" | "logos" | "ads">("submissions");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const soundOnRef = useRef(true);
   soundOnRef.current = soundOn;
@@ -210,9 +210,17 @@ function AdminPage() {
           >
             <span className="flex items-center gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Bank Logos</span>
           </button>
+          <button
+            onClick={() => setTab("ads")}
+            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${tab === "ads" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <span className="flex items-center gap-1.5"><Megaphone className="h-3.5 w-3.5" /> Ads</span>
+          </button>
         </div>
 
-        {tab === "logos" ? (
+        {tab === "ads" ? (
+          <AdsManager />
+        ) : tab === "logos" ? (
           <BankLogoManager />
         ) : tab === "identity" ? (
           <IdentityVerifications playSound={playSound} />
@@ -873,6 +881,208 @@ function IdentityVerifications({ playSound }: { playSound: () => void }) {
           <img src={preview} alt="" className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain" />
         </div>
       )}
+    </div>
+  );
+}
+
+type AdRow = {
+  id: string;
+  slot: string;
+  title: string | null;
+  image_url: string | null;
+  link_url: string | null;
+  html: string | null;
+  enabled: boolean;
+  sort_order: number;
+  created_at: string;
+};
+
+function AdsManager() {
+  const [rows, setRows] = useState<AdRow[]>([]);
+  const [form, setForm] = useState({
+    slot: "home",
+    title: "",
+    image_url: "",
+    link_url: "",
+    html: "",
+    sort_order: 0,
+  });
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const load = async () => {
+    const { data } = await supabase
+      .from("ads")
+      .select("*")
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: false });
+    if (data) setRows(data as AdRow[]);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const add = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setMsg(null);
+    const payload = {
+      slot: form.slot.trim() || "home",
+      title: form.title.trim() || null,
+      image_url: form.image_url.trim() || null,
+      link_url: form.link_url.trim() || null,
+      html: form.html.trim() || null,
+      sort_order: Number(form.sort_order) || 0,
+      enabled: true,
+    };
+    const { error } = await supabase.from("ads").insert(payload);
+    setBusy(false);
+    if (error) {
+      setMsg(error.message);
+      return;
+    }
+    setForm({ slot: "home", title: "", image_url: "", link_url: "", html: "", sort_order: 0 });
+    setMsg("Ad created.");
+    load();
+  };
+
+  const toggle = async (r: AdRow) => {
+    await supabase.from("ads").update({ enabled: !r.enabled }).eq("id", r.id);
+    load();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Delete this ad?")) return;
+    await supabase.from("ads").delete().eq("id", id);
+    load();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <h2 className="mb-1 flex items-center gap-2 font-display text-lg font-bold text-foreground">
+          <Megaphone className="h-5 w-5 text-primary" /> Create Ad
+        </h2>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Ads are shown to free (non-account) scanners on the homepage. Provide an image + link, or paste custom HTML
+          (e.g. Google AdSense / network code).
+        </p>
+        <form onSubmit={add} className="grid gap-3 sm:grid-cols-2">
+          <label className="text-xs">
+            <span className="mb-1 block font-medium text-muted-foreground">Slot</span>
+            <input
+              value={form.slot}
+              onChange={(e) => setForm({ ...form, slot: e.target.value })}
+              placeholder="home"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+          </label>
+          <label className="text-xs">
+            <span className="mb-1 block font-medium text-muted-foreground">Sort order</span>
+            <input
+              type="number"
+              value={form.sort_order}
+              onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+          </label>
+          <label className="text-xs sm:col-span-2">
+            <span className="mb-1 block font-medium text-muted-foreground">Title / caption</span>
+            <input
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="e.g. Try Brand X — 20% off"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+          </label>
+          <label className="text-xs sm:col-span-2">
+            <span className="mb-1 block font-medium text-muted-foreground">Image URL</span>
+            <input
+              value={form.image_url}
+              onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+              placeholder="https://…/banner.jpg"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+          </label>
+          <label className="text-xs sm:col-span-2">
+            <span className="mb-1 block font-medium text-muted-foreground">Click-through URL</span>
+            <input
+              value={form.link_url}
+              onChange={(e) => setForm({ ...form, link_url: e.target.value })}
+              placeholder="https://advertiser.com/landing"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+          </label>
+          <label className="text-xs sm:col-span-2">
+            <span className="mb-1 block font-medium text-muted-foreground">Custom HTML (optional, overrides image)</span>
+            <textarea
+              value={form.html}
+              onChange={(e) => setForm({ ...form, html: e.target.value })}
+              rows={4}
+              placeholder="<script async src='…adsbygoogle.js'></script><ins class='adsbygoogle' …></ins>"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-[11px] outline-none focus:border-primary"
+            />
+          </label>
+          <div className="sm:col-span-2 flex items-center justify-between">
+            {msg && <span className="text-xs text-muted-foreground">{msg}</span>}
+            <button
+              type="submit"
+              disabled={busy}
+              className="ml-auto inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
+            >
+              <Plus className="h-4 w-4" /> {busy ? "Saving…" : "Add ad"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <h3 className="mb-3 text-sm font-semibold text-foreground">Active & paused ads ({rows.length})</h3>
+        {rows.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No ads yet.</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {rows.map((r) => (
+              <li key={r.id} className="flex items-start gap-3 py-3">
+                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-muted">
+                  {r.image_url ? (
+                    <img src={r.image_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center text-[10px] text-muted-foreground">HTML</div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {r.title || (r.html ? "Custom HTML" : "Untitled ad")}
+                  </p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    slot: {r.slot} · order: {r.sort_order}
+                    {r.link_url ? ` · ${r.link_url}` : ""}
+                  </p>
+                </div>
+                <button
+                  onClick={() => toggle(r)}
+                  className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition ${
+                    r.enabled
+                      ? "bg-success/15 text-success hover:bg-success/25"
+                      : "bg-muted text-muted-foreground hover:bg-muted/70"
+                  }`}
+                >
+                  {r.enabled ? "Enabled" : "Paused"}
+                </button>
+                <button
+                  onClick={() => remove(r.id)}
+                  className="rounded-md p-1.5 text-destructive transition hover:bg-destructive/10"
+                  title="Delete"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
