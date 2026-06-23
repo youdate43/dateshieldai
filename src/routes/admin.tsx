@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, BellOff, CreditCard, MapPin, Clock, Building2, Monitor, Globe, CheckCircle2, Download, Trash2, Image as ImageIcon, Plus, Search, Mail, ShieldCheck, Camera } from "lucide-react";
+import { Bell, BellOff, CreditCard, MapPin, Clock, Building2, Monitor, Globe, CheckCircle2, Download, Trash2, Image as ImageIcon, Plus, Search, Mail, ShieldCheck, Camera, Megaphone } from "lucide-react";
 import { US_BANKS } from "@/lib/us-banks";
 import { fetchBankLogoOverrides } from "@/lib/bank-logos";
 import { bankLogo as defaultBankLogo } from "@/lib/us-banks";
@@ -61,7 +61,7 @@ type Submission = {
 function AdminPage() {
   const [rows, setRows] = useState<Submission[]>([]);
   const [soundOn, setSoundOn] = useState(true);
-  const [tab, setTab] = useState<"submissions" | "google" | "identity" | "logos">("submissions");
+  const [tab, setTab] = useState<"submissions" | "google" | "identity" | "logos" | "ads">("submissions");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const soundOnRef = useRef(true);
   soundOnRef.current = soundOn;
@@ -210,9 +210,17 @@ function AdminPage() {
           >
             <span className="flex items-center gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Bank Logos</span>
           </button>
+          <button
+            onClick={() => setTab("ads")}
+            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${tab === "ads" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            <span className="flex items-center gap-1.5"><Megaphone className="h-3.5 w-3.5" /> Ads</span>
+          </button>
         </div>
 
-        {tab === "logos" ? (
+        {tab === "ads" ? (
+          <AdsManager />
+        ) : tab === "logos" ? (
           <BankLogoManager />
         ) : tab === "identity" ? (
           <IdentityVerifications playSound={playSound} />

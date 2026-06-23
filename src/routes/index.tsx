@@ -104,6 +104,9 @@ function Index() {
         </div>
       </section>
 
+      {/* Sponsored — shown to free users without an account */}
+      <AdsSlot slot="home" className="mb-12" />
+
       {/* APP PREVIEW — stacked screens */}
       <SectionHeader eyebrow="Inside the app" title="Three taps to safety" />
       <div className="mb-20 space-y-5">
