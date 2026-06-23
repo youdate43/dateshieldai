@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { HeroPhone } from "@/components/sections/HeroPhone";
 import { AppCard } from "@/components/AppCard";
 import { PhoneFrame } from "@/components/PhoneFrame";
+import { FreeTrialPopup } from "@/components/FreeTrialPopup";
+import { AdsSlot } from "@/components/AdsSlot";
 import {
   ShieldCheck,
   Sparkles,
@@ -41,6 +43,8 @@ export const Route = createFileRoute("/")({
 function Index() {
   return (
     <main className="relative mx-auto w-full max-w-[440px] px-4 pb-16 pt-8 sm:max-w-[480px]">
+      <FreeTrialPopup />
+
       {/* Top nav */}
       <header className="mb-8 flex items-center justify-between animate-fade-up">
         <div className="flex items-center gap-2">
@@ -193,9 +197,9 @@ function Index() {
       <SectionHeader eyebrow="Pricing" title="Pick your shield" />
       <div className="mb-20 space-y-4">
         {[
-          { id: "basic", name: "Basic", price: "3", per: "/mo", scans: "30 scans / month", popular: false, features: ["Risk score", "Basic flags"] },
-          { id: "pro", name: "Pro", price: "9", per: "/mo", scans: "100 scans / month", popular: true, features: ["Everything in Basic", "Reverse image search", "Bio NLP analysis", "Priority queue"] },
-          { id: "unlimited", name: "Unlimited", price: "19", per: "/mo", scans: "Unlimited scans", popular: false, features: ["Everything in Pro", "API access", "History & exports"] },
+          { id: "basic", name: "Basic", price: "1.20", per: "/mo", scans: "30 scans / month", popular: false, features: ["Risk score", "Basic flags"] },
+          { id: "pro", name: "Pro", price: "3", per: "/mo", scans: "100 scans / month", popular: true, features: ["Everything in Basic", "Reverse image search", "Bio NLP analysis", "Priority queue"] },
+          { id: "unlimited", name: "Unlimited", price: "5", per: "/mo", scans: "Unlimited scans", popular: false, features: ["Everything in Pro", "API access", "History & exports"] },
         ].map((p) => (
           <div
             key={p.name}
