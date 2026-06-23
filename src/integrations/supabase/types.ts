@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      ads: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          html: string | null
+          id: string
+          image_url: string | null
+          link_url: string | null
+          slot: string
+          sort_order: number
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          html?: string | null
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          slot?: string
+          sort_order?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          html?: string | null
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          slot?: string
+          sort_order?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bank_logos: {
         Row: {
           domain: string
