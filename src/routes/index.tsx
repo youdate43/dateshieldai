@@ -281,9 +281,9 @@ function Index() {
             Join thousands of US daters using DateShield to spot fake profiles before it's too
             late.
           </p>
-          <button className="mt-5 w-full gradient-azure rounded-full py-4 text-sm font-bold text-white shadow-glow transition hover:scale-[1.02] active:scale-[0.98]">
+          <Link to="/scan" className="mt-5 block w-full gradient-azure rounded-full py-4 text-center text-sm font-bold text-white shadow-glow transition hover:scale-[1.02] active:scale-[0.98]">
             Start Your First Scan
-          </button>
+          </Link>
           <p className="mt-3 text-[11px] text-white/50">No credit card required · 3 free scans</p>
         </div>
       </section>
