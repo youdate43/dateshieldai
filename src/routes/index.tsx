@@ -91,12 +91,12 @@ function Index() {
           className="mx-auto mt-6 flex max-w-xs flex-col gap-3 animate-fade-up"
           style={{ animationDelay: "180ms" }}
         >
-          <Link to="/signup" className="gradient-azure rounded-full px-6 py-3.5 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02] active:scale-[0.98]">
+          <Link to="/scan" className="gradient-azure rounded-full px-6 py-3.5 text-sm font-semibold text-white shadow-glow transition hover:scale-[1.02] active:scale-[0.98]">
             Start Scan →
           </Link>
-          <button className="glass rounded-full px-6 py-3 text-sm font-medium text-white/90 hover:text-white">
+          <Link to="/trial" search={{ plan: "pro" }} className="glass rounded-full px-6 py-3 text-center text-sm font-medium text-white/90 hover:text-white">
             Free trial for 1 month
-          </button>
+          </Link>
         </div>
 
         <div className="mt-12 animate-float" style={{ animationDelay: "240ms" }}>
@@ -281,9 +281,9 @@ function Index() {
             Join thousands of US daters using DateShield to spot fake profiles before it's too
             late.
           </p>
-          <button className="mt-5 w-full gradient-azure rounded-full py-4 text-sm font-bold text-white shadow-glow transition hover:scale-[1.02] active:scale-[0.98]">
+          <Link to="/scan" className="mt-5 block w-full gradient-azure rounded-full py-4 text-center text-sm font-bold text-white shadow-glow transition hover:scale-[1.02] active:scale-[0.98]">
             Start Your First Scan
-          </button>
+          </Link>
           <p className="mt-3 text-[11px] text-white/50">No credit card required · 3 free scans</p>
         </div>
       </section>
