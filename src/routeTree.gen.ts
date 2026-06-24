@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerifyIdentityRouteImport } from './routes/verify-identity'
 import { Route as TrialRouteImport } from './routes/trial'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ScanRouteImport } from './routes/scan'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -31,6 +32,11 @@ const TrialRoute = TrialRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScanRoute = ScanRouteImport.update({
+  id: '/scan',
+  path: '/scan',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
+  '/scan': typeof ScanRoute
   '/signup': typeof SignupRoute
   '/trial': typeof TrialRoute
   '/verify-identity': typeof VerifyIdentityRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
+  '/scan': typeof ScanRoute
   '/signup': typeof SignupRoute
   '/trial': typeof TrialRoute
   '/verify-identity': typeof VerifyIdentityRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
+  '/scan': typeof ScanRoute
   '/signup': typeof SignupRoute
   '/trial': typeof TrialRoute
   '/verify-identity': typeof VerifyIdentityRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/profile'
+    | '/scan'
     | '/signup'
     | '/trial'
     | '/verify-identity'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/profile'
+    | '/scan'
     | '/signup'
     | '/trial'
     | '/verify-identity'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/profile'
+    | '/scan'
     | '/signup'
     | '/trial'
     | '/verify-identity'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
+  ScanRoute: typeof ScanRoute
   SignupRoute: typeof SignupRoute
   TrialRoute: typeof TrialRoute
   VerifyIdentityRoute: typeof VerifyIdentityRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/scan': {
+      id: '/scan'
+      path: '/scan'
+      fullPath: '/scan'
+      preLoaderRoute: typeof ScanRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
+  ScanRoute: ScanRoute,
   SignupRoute: SignupRoute,
   TrialRoute: TrialRoute,
   VerifyIdentityRoute: VerifyIdentityRoute,
@@ -208,12 +229,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
